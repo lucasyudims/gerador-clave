@@ -64,27 +64,25 @@ def gerar_permutacoes_unicas(vetor):
     unicas.sort()
     return unicas
 
-# --- GERADOR DE HTML (CSS Centralizado e Compacto) ---
+# --- GERADOR DE HTML (ESTILO COMPACTO COM LINHAS VERTICAIS) ---
 
 def gerar_html_tabela(df, divisor_visual):
-    # Estilos Base
-    style_table = "width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; color: black;"
+    # 1. Tabela: width: auto (para não esticar), margin: auto (para centralizar na tela)
+    style_table = "width: auto; margin: 0 auto; border-collapse: collapse; font-family: sans-serif; font-size: 14px; color: black; border: 1px solid #ccc;"
     
-    # Cabeçalho: CENTRALIZADO
-    style_th = "background-color: #f0f2f6; color: black; border-bottom: 2px solid #333; padding: 10px; text-align: center;"
+    # 2. Cabeçalho: Com borda vertical (border-right)
+    style_th = "background-color: #f0f2f6; color: black; border-bottom: 2px solid #333; border-right: 1px solid #ccc; padding: 10px 15px; text-align: center;"
     
-    html = f'<table style="{style_table}">'
+    html = f'<div style="width:100%; display:flex; justify-content:center;"><table style="{style_table}">'
     
-    # Cabeçalho
     html += f'''
     <thead>
         <tr>
-            <th style="{style_th} width: 50px;">ID</th>
+            <th style="{style_th}">ID</th>
             <th style="{style_th}">Grid Visual</th>
             <th style="{style_th}">Vetor</th>
             <th style="{style_th}">NS</th>
-            <th style="{style_th}">Info</th>
-        </tr>
+            <th style="{style_th} border-right: none;">Info</th> </tr>
     </thead>
     <tbody>
     '''
@@ -94,23 +92,24 @@ def gerar_html_tabela(df, divisor_visual):
         if "ORIGINAL" in str(row['Info']): bg_color = "#e6f3ff" 
         elif "Rotação" in str(row['Info']): bg_color = "#f0fff4" 
         
-        # Célula padrão: CENTRALIZADO E COMPACTO
-        style_td = "border-bottom: 1px solid #ddd; padding: 6px; vertical-align: middle; text-align: center;"
+        # Estilo Base da Célula: Com borda vertical e alinhamento central
+        style_td_base = "border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 8px 15px; vertical-align: middle; text-align: center;"
+        
+        # Última coluna não precisa de borda direita
+        style_td_last = "border-bottom: 1px solid #ddd; padding: 8px 15px; vertical-align: middle; text-align: center;"
         
         html += f'<tr style="background-color: {bg_color};">'
         
         # 1. ID
-        html += f'<td style="{style_td} font-weight: bold; color: #555;">{row["ID"]}</td>'
+        html += f'<td style="{style_td_base} font-weight: bold; color: #555;">{row["ID"]}</td>'
         
-        # 2. GRID VISUAL (Célula)
-        # CONTAINER DO GRID: justify-content: center para centralizar o bloco de quadradinhos
-        grid_html = '<div style="display: flex; align-items: center; gap: 0px; justify-content: center;">'
+        # 2. GRID VISUAL
+        grid_html = '<div style="display: flex; align-items: center; gap: 0px; margin: 0 auto; width: fit-content;">'
         
         vetor_nums = eval(row['Vetor']) 
         vetor_loc = gerar_vetor_localizacao(vetor_nums)
         
         for i, val in enumerate(vetor_loc):
-            
             cor_fundo = "#FF5252" if val == 1 else "white" 
             
             dot_html = ""
@@ -123,7 +122,7 @@ def gerar_html_tabela(df, divisor_visual):
                     background-color: {cor_fundo}; 
                     border: 1px solid #bbb; 
                     display: flex; justify-content: center; align-items: center;
-                    margin-right: 2px;
+                    margin-right: 1px;
                 ">
                     {dot_html}
                 </div>
@@ -139,23 +138,23 @@ def gerar_html_tabela(df, divisor_visual):
 
         grid_html += '</div>'
         
-        # Grid Visual: Mantém o padding base mas aplica o grid centralizado.
-        html += f'<td style="{style_td}">{grid_html}</td>'
+        # Grid usa o estilo base (com linha vertical separando da próxima coluna)
+        html += f'<td style="{style_td_base}">{grid_html}</td>'
         
         # 3. Vetor
-        html += f'<td style="{style_td} font-family: monospace; font-weight: bold; color: #333;">{row["Vetor"]}</td>'
+        html += f'<td style="{style_td_base} font-family: monospace; font-weight: bold; color: #333; white-space: nowrap;">{row["Vetor"]}</td>'
         
         # 4. NS
-        html += f'<td style="{style_td} color: #666;">{row["NS"]}</td>'
+        html += f'<td style="{style_td_base} color: #666;">{row["NS"]}</td>'
         
-        # 5. Info
+        # 5. Info (Última coluna)
         cor_info = "green" if row['Info'] != "-" else "#ccc"
         weight_info = "bold" if row['Info'] != "-" else "normal"
-        html += f'<td style="{style_td} color: {cor_info}; font-weight: {weight_info}; font-size: 12px;">{row["Info"]}</td>'
+        html += f'<td style="{style_td_last} color: {cor_info}; font-weight: {weight_info}; font-size: 12px; white-space: nowrap;">{row["Info"]}</td>'
         
         html += '</tr>'
         
-    html += '</tbody></table>'
+    html += '</tbody></table></div>' # Fecha a div centralizadora
     
     return html.replace('\n', '')
 
