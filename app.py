@@ -17,17 +17,13 @@ if not st.session_state['autenticado']:
     
     col1, col2 = st.columns([1, 2])
     with col1:
-        # O text_input atualiza a variável 'senha' ao apertar Enter
         senha = st.text_input("Digite a senha de acesso:", type="password")
-        botao = st.button("Entrar")
-        
-        # Verifica se a senha está correta (seja por Enter ou Botão)
-        if senha == "clave123":
-            st.session_state['autenticado'] = True
-            st.rerun()
-        elif senha != "":
-            st.error("Senha incorreta.")
-            
+        if st.button("Entrar") or senha: # O input já aciona o rerun no Enter
+            if senha == "clave123":
+                st.session_state['autenticado'] = True
+                st.rerun()
+            elif senha != "":
+                st.error("Senha incorreta.")
     st.stop() 
 
 # ==========================================
@@ -141,27 +137,40 @@ def gerar_html_tabela_padrao(df, divisor_visual):
     return html.replace('\n', '')
 
 def gerar_html_tabela_pares(pares, divisor_visual):
-    # Forçando background white e color black nas células para evitar modo escuro
+    # CSS Base
     style_table = "width: auto; margin: 0 auto; border-collapse: collapse; font-family: sans-serif; font-size: 13px; color: black; border: 1px solid #ccc; background-color: white;"
-    style_th = "background-color: #f0f2f6; color: black; border-bottom: 2px solid #333; border-right: 1px solid #ccc; padding: 8px; text-align: center;"
     
-    # CSS Inline forçado para as células
-    style_td = "background-color: white !important; color: black !important; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; text-align: center;"
-    style_sep = "background-color: #f9f9f9 !important; color: black !important; border-bottom: 1px solid #ddd; border-right: 2px solid #333; padding: 6px 10px; vertical-align: middle; text-align: center;"
+    # Cabeçalho Padrão (Fundo cinza, borda inferior grossa)
+    th_base = "background-color: #f0f2f6; color: black; border-bottom: 2px solid #333; padding: 8px; text-align: center;"
+    
+    # Célula Padrão
+    td_base = "background-color: white !important; color: black !important; border-bottom: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; text-align: center;"
+    
+    # -- Estilos Específicos para Bordas --
+    
+    # 1. Borda Direta Fina (Padrão entre colunas)
+    th_std = th_base + "border-right: 1px solid #ccc;"
+    td_std = td_base + "border-right: 1px solid #ddd;"
+    
+    # 2. Borda Direita GROSSA (Divisória de Seção: Info e NS central)
+    th_thick = th_base + "border-right: 2px solid #333;"
+    td_thick = td_base + "border-right: 2px solid #333;"
+    
+    # 3. Cabeçalho ID/Info (Fundo Azulado)
+    th_blue = th_std + "background-color: #e3f2fd;"
+    th_blue_thick = th_thick + "background-color: #e3f2fd;"
 
     html = f'<div style="width:100%; display:flex; justify-content:center;"><table style="{style_table}">'
     
+    # Cabeçalho
     html += f'''<thead>
         <tr>
-            <th style="{style_th} background-color: #e3f2fd;">ID Par</th>
-            <th style="{style_th} background-color: #e3f2fd;">Info (Orig/Rot)</th>
-            <th style="{style_th}">Grid A</th>
-            <th style="{style_th}">Vetor A</th>
-            <th style="{style_sep}">NS</th>
-            <th style="{style_th}">Grid B</th>
-            <th style="{style_th}">Vetor B</th>
-            <th style="{style_th} border-right: none;">NS</th>
-        </tr></thead><tbody>'''
+            <th style="{th_blue}">ID Par</th>
+            <th style="{th_blue_thick}">Info (Orig/Rot)</th> <th style="{th_std}">Grid A</th>
+            <th style="{th_std}">Vetor A</th>
+            <th style="{th_thick}">NS</th> <th style="{th_std}">Grid B</th>
+            <th style="{th_std}">Vetor B</th>
+            <th style="{th_base}">NS</th> </tr></thead><tbody>'''
 
     for p in pares:
         vetor_a = p['vetor_a']
@@ -169,22 +178,24 @@ def gerar_html_tabela_pares(pares, divisor_visual):
         grid_a = criar_grid_html_celula(vetor_a, divisor_visual)
         grid_b = criar_grid_html_celula(vetor_b, divisor_visual)
         
-        # Info Color logic
         cor_info = "green" if "Rot" in p["info"] or "ORIGINAL" in p["info"] else "#999"
         
         html += '<tr>'
-        html += f'<td style="{style_td} font-weight: bold;">{p["id_combinado"]}</td>'
-        html += f'<td style="{style_td} color: {cor_info}; font-weight: bold;">{p["info"]}</td>'
+        html += f'<td style="{td_std} font-weight: bold;">{p["id_combinado"]}</td>'
         
-        # Lado A
-        html += f'<td style="{style_td} padding: 4px;">{grid_a}</td>'
-        html += f'<td style="{style_td} font-family: monospace;">{str(vetor_a)}</td>'
-        html += f'<td style="{style_sep}">{p["ns_a"]}</td>'
+        # Info com Borda Grossa
+        html += f'<td style="{td_thick} color: {cor_info}; font-weight: bold;">{p["info"]}</td>'
         
-        # Lado B
-        html += f'<td style="{style_td} padding: 4px;">{grid_b}</td>'
-        html += f'<td style="{style_td} font-family: monospace;">{str(vetor_b)}</td>'
-        html += f'<td style="{style_td} border-right: none;">{p["ns_b"]}</td>'
+        html += f'<td style="{td_std} padding: 4px;">{grid_a}</td>'
+        html += f'<td style="{td_std} font-family: monospace;">{str(vetor_a)}</td>'
+        
+        # NS A com Borda Grossa
+        html += f'<td style="{td_thick} color: #666; background-color: #f9f9f9 !important;">{p["ns_a"]}</td>'
+        
+        html += f'<td style="{td_std} padding: 4px;">{grid_b}</td>'
+        html += f'<td style="{td_std} font-family: monospace;">{str(vetor_b)}</td>'
+        html += f'<td style="background-color: white !important; color: #666 !important; border-bottom: 1px solid #ddd; padding: 6px 10px; text-align: center;">{p["ns_b"]}</td>'
+        
         html += '</tr>'
 
     html += '</tbody></table></div>'
@@ -228,11 +239,9 @@ for i, rot in enumerate(rotacoes):
     rot_inv = rot[::-1]
     info_parts = []
     
-    # É Original?
     if i == 0: 
         info_parts.append("ORIGINAL")
         
-    # É Inverso de outra Rotação?
     if rot_inv in rotacoes:
         idx_inv = rotacoes.index(rot_inv)
         if idx_inv != i:
@@ -240,7 +249,6 @@ for i, rot in enumerate(rotacoes):
         else:
             info_parts.append("(Palíndromo)")
             
-    # Formata string final, removendo o hífen se tiver info
     full_info = " / ".join(info_parts) if info_parts else "-"
     
     dados_rot.append({"ID": f"R{i}", "Vetor": str(rot), "NS": ns, "Info": full_info})
@@ -337,7 +345,7 @@ for index, row in df_perm.iterrows():
 
 # --- EXIBIÇÃO ---
 
-aba1, aba2, aba3 = st.tabs(["🔄 Rotações", "🔀 Permutações", "mirror Inversões (Pares)"])
+aba1, aba2, aba3 = st.tabs(["🔄 Rotações", "🔀 Permutações", "Inversões (Pares)"])
 
 with aba1:
     st.caption("Rotações e suas relações de inversão.")
