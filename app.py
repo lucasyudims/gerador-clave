@@ -6,7 +6,7 @@ import itertools
 st.set_page_config(page_title="Gerador de Claves", layout="wide")
 
 # ==========================================
-# 1. SISTEMA DE LOGIN
+# 1. SISTEMA DE LOGIN (Com Enter)
 # ==========================================
 
 if 'autenticado' not in st.session_state:
@@ -14,15 +14,20 @@ if 'autenticado' not in st.session_state:
 
 if not st.session_state['autenticado']:
     st.title("🔒 Acesso Restrito")
+    
     col1, col2 = st.columns([1, 2])
     with col1:
+        # O text_input atualiza a variável 'senha' ao apertar Enter
         senha = st.text_input("Digite a senha de acesso:", type="password")
-        if st.button("Entrar"):
-            if senha == "clave123":
-                st.session_state['autenticado'] = True
-                st.rerun() 
-            else:
-                st.error("Senha incorreta.")
+        botao = st.button("Entrar")
+        
+        # Verifica se a senha está correta (seja por Enter ou Botão)
+        if senha == "clave123":
+            st.session_state['autenticado'] = True
+            st.rerun()
+        elif senha != "":
+            st.error("Senha incorreta.")
+            
     st.stop() 
 
 # ==========================================
@@ -63,13 +68,10 @@ def gerar_permutacoes_unicas(vetor):
     unicas.sort()
     return unicas
 
-# --- GERADORES DE HTML E CSS ---
+# --- GERADORES DE HTML ---
 
 def criar_grid_html_celula(vetor_nums, divisor_visual):
-    """
-    Função auxiliar que cria APENAS o HTML dos quadradinhos.
-    Usada tanto na tabela simples quanto na tabela dupla.
-    """
+    """ Cria apenas os quadradinhos """
     vetor_loc = gerar_vetor_localizacao(vetor_nums)
     grid_html = '<div style="display: flex; align-items: center; gap: 0px; margin: 0 auto; width: fit-content;">'
     
@@ -99,7 +101,6 @@ def criar_grid_html_celula(vetor_nums, divisor_visual):
     return grid_html
 
 def gerar_html_tabela_padrao(df, divisor_visual):
-    # Estilos
     style_table = "width: auto; margin: 0 auto; border-collapse: collapse; font-family: sans-serif; font-size: 14px; color: black; border: 1px solid #ccc;"
     style_th = "background-color: #f0f2f6; color: black; border-bottom: 2px solid #333; border-right: 1px solid #ccc; padding: 10px 15px; text-align: center;"
     style_td = "border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 8px 15px; vertical-align: middle; text-align: center;"
@@ -115,8 +116,10 @@ def gerar_html_tabela_padrao(df, divisor_visual):
     
     for index, row in df.iterrows():
         bg_color = "white"
-        if "ORIGINAL" in str(row['Info']): bg_color = "#e6f3ff"
-        elif "Rotação" in str(row['Info']): bg_color = "#f0fff4"
+        info_txt = str(row['Info'])
+        if "ORIGINAL" in info_txt: bg_color = "#e6f3ff"
+        elif "Rotação" in info_txt: bg_color = "#f0fff4"
+        elif "Inversão" in info_txt or "Palíndromo" in info_txt: bg_color = "#fff8e1"
         
         vetor_nums = eval(row['Vetor'])
         grid = criar_grid_html_celula(vetor_nums, divisor_visual)
@@ -127,12 +130,9 @@ def gerar_html_tabela_padrao(df, divisor_visual):
         html += f'<td style="{style_td} font-family: monospace; font-weight: bold; color: #333; white-space: nowrap;">{row["Vetor"]}</td>'
         html += f'<td style="{style_td} color: #666;">{row["NS"]}</td>'
         
-        # Info Colorida
-        info_txt = str(row['Info'])
         cor_info = "#666"
-        if "ORIGINAL" in info_txt: cor_info = "green"
-        elif "Rotação" in info_txt: cor_info = "#2e7d32"
-        elif "Inv." in info_txt: cor_info = "#d84315" # Laranja escuro para inversões
+        if "ORIGINAL" in info_txt or "Rotação" in info_txt: cor_info = "green"
+        elif "Inv." in info_txt: cor_info = "#d84315"
         
         html += f'<td style="border-bottom: 1px solid #ddd; padding: 8px 15px; text-align: center; color: {cor_info}; font-size: 12px; white-space: nowrap;">{info_txt}</td>'
         html += '</tr>'
@@ -141,27 +141,24 @@ def gerar_html_tabela_padrao(df, divisor_visual):
     return html.replace('\n', '')
 
 def gerar_html_tabela_pares(pares, divisor_visual):
-    """
-    Gera a tabela da aba Inversões com colunas duplas.
-    """
-    style_table = "width: auto; margin: 0 auto; border-collapse: collapse; font-family: sans-serif; font-size: 13px; color: black; border: 1px solid #ccc;"
+    # Forçando background white e color black nas células para evitar modo escuro
+    style_table = "width: auto; margin: 0 auto; border-collapse: collapse; font-family: sans-serif; font-size: 13px; color: black; border: 1px solid #ccc; background-color: white;"
     style_th = "background-color: #f0f2f6; color: black; border-bottom: 2px solid #333; border-right: 1px solid #ccc; padding: 8px; text-align: center;"
-    style_td = "border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; text-align: center;"
-    style_sep = "border-bottom: 1px solid #ddd; border-right: 2px solid #333; padding: 6px 10px; vertical-align: middle; text-align: center; background-color: #f9f9f9;" # Separador central
+    
+    # CSS Inline forçado para as células
+    style_td = "background-color: white !important; color: black !important; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; text-align: center;"
+    style_sep = "background-color: #f9f9f9 !important; color: black !important; border-bottom: 1px solid #ddd; border-right: 2px solid #333; padding: 6px 10px; vertical-align: middle; text-align: center;"
 
     html = f'<div style="width:100%; display:flex; justify-content:center;"><table style="{style_table}">'
     
-    # Cabeçalho Duplo
     html += f'''<thead>
         <tr>
             <th style="{style_th} background-color: #e3f2fd;">ID Par</th>
             <th style="{style_th} background-color: #e3f2fd;">Info (Orig/Rot)</th>
-            
-            <th style="{style_th}">Grid (Forma A)</th>
+            <th style="{style_th}">Grid A</th>
             <th style="{style_th}">Vetor A</th>
             <th style="{style_sep}">NS</th>
-            
-            <th style="{style_th}">Grid (Inversão B)</th>
+            <th style="{style_th}">Grid B</th>
             <th style="{style_th}">Vetor B</th>
             <th style="{style_th} border-right: none;">NS</th>
         </tr></thead><tbody>'''
@@ -169,27 +166,25 @@ def gerar_html_tabela_pares(pares, divisor_visual):
     for p in pares:
         vetor_a = p['vetor_a']
         vetor_b = p['vetor_b']
-        
         grid_a = criar_grid_html_celula(vetor_a, divisor_visual)
         grid_b = criar_grid_html_celula(vetor_b, divisor_visual)
         
+        # Info Color logic
+        cor_info = "green" if "Rot" in p["info"] or "ORIGINAL" in p["info"] else "#999"
+        
         html += '<tr>'
         html += f'<td style="{style_td} font-weight: bold;">{p["id_combinado"]}</td>'
-        
-        # Info
-        cor_info = "green" if "Rot" in p["info"] or "ORIGINAL" in p["info"] else "#999"
         html += f'<td style="{style_td} color: {cor_info}; font-weight: bold;">{p["info"]}</td>'
         
         # Lado A
         html += f'<td style="{style_td} padding: 4px;">{grid_a}</td>'
         html += f'<td style="{style_td} font-family: monospace;">{str(vetor_a)}</td>'
-        html += f'<td style="{style_sep} color: #666;">{p["ns_a"]}</td>'
+        html += f'<td style="{style_sep}">{p["ns_a"]}</td>'
         
         # Lado B
         html += f'<td style="{style_td} padding: 4px;">{grid_b}</td>'
         html += f'<td style="{style_td} font-family: monospace;">{str(vetor_b)}</td>'
-        html += f'<td style="border-bottom: 1px solid #ddd; padding: 6px 10px; text-align: center; color: #666;">{p["ns_b"]}</td>'
-        
+        html += f'<td style="{style_td} border-right: none;">{p["ns_b"]}</td>'
         html += '</tr>'
 
     html += '</tbody></table></div>'
@@ -223,36 +218,36 @@ with st.sidebar:
 
 # --- PROCESSAMENTO ---
 
-# 1. Dados Básicos
 rotacoes = gerar_rotacoes(vetor_original)
 perms_unicas = gerar_permutacoes_unicas(vetor_original)
 
-# 2. Processamento de Rotações (Aba 1)
+# 1. Rotações (Aba 1)
 dados_rot = []
 for i, rot in enumerate(rotacoes):
     ns = calcular_ns(vetor_original, rot)
+    rot_inv = rot[::-1]
+    info_parts = []
     
-    # Verifica Inversão dentro das Rotações
-    rot_inv = rot[::-1] # Inverso desta rotação
-    info_extra = ""
-    
-    # Procura se o inverso é alguma outra rotação
+    # É Original?
+    if i == 0: 
+        info_parts.append("ORIGINAL")
+        
+    # É Inverso de outra Rotação?
     if rot_inv in rotacoes:
         idx_inv = rotacoes.index(rot_inv)
         if idx_inv != i:
-            info_extra = f" / Inv. Rot {idx_inv}"
+            info_parts.append(f"Inv. Rot {idx_inv}")
         else:
-            info_extra = " (Palíndromo)"
+            info_parts.append("(Palíndromo)")
             
-    base_info = "ORIGINAL" if i == 0 else "-"
-    full_info = base_info + (info_extra if info_extra else "")
+    # Formata string final, removendo o hífen se tiver info
+    full_info = " / ".join(info_parts) if info_parts else "-"
     
     dados_rot.append({"ID": f"R{i}", "Vetor": str(rot), "NS": ns, "Info": full_info})
 
 df_rot = pd.DataFrame(dados_rot).sort_values("NS")
 
-# 3. Processamento de Permutações (Aba 2)
-# Vamos criar uma lista de objetos primeiro para facilitar buscas
+# 2. Permutações (Aba 2)
 lista_perm_objs = []
 for i, perm in enumerate(perms_unicas):
     l_perm = list(perm)
@@ -268,17 +263,12 @@ for p in lista_perm_objs:
     vetor_atual = p['vetor']
     info_parts = []
     
-    # A. É Rotação?
     if vetor_atual == vetor_original:
         info_parts.append("ORIGINAL")
     elif vetor_atual in rotacoes:
         info_parts.append(f"Rotação {rotacoes.index(vetor_atual)}")
         
-    # B. É Inversão de alguém?
     vetor_inv = vetor_atual[::-1]
-    
-    # Procura o índice do inverso na lista de permutações
-    # (Isso é um pouco custoso O(N^2), mas ok para vetores pequenos)
     idx_inv_perm = -1
     for cand in lista_perm_objs:
         if cand['vetor'] == vetor_inv:
@@ -286,14 +276,9 @@ for p in lista_perm_objs:
             break
             
     if idx_inv_perm != -1:
-        # Se for ele mesmo, é palíndromo
         if idx_inv_perm == p['idx']:
-            # Só marcamos palíndromo se não for rotação (para não poluir)
-            # ou podemos adicionar " (Palíndromo)"
-            pass 
+            info_parts.append("(Palíndromo)")
         else:
-            # É inverso de outra permutação
-            # Verificamos se esse inverso é uma rotação conhecida
             if vetor_inv in rotacoes:
                 idx_rot_inv = rotacoes.index(vetor_inv)
                 info_parts.append(f"Inv. de Rot {idx_rot_inv}")
@@ -315,32 +300,25 @@ if "ORIGINAL" in str(df_perm.iloc[0]['Info']):
     df_perm.iloc[0, df_perm.columns.get_loc('ID')] = "ORIG"
 df_perm = df_perm.drop(columns=["ordem"])
 
-# 4. Processamento da Aba Inversões (Aba 3)
-# Lógica: Agrupar pares (A, Inverso de A)
+# 3. Inversões (Aba 3)
 ids_processados = set()
 pares_inversoes = []
 
-# Usamos a lista ordenada por NS (df_perm) para manter a ordem lógica visual
 for index, row in df_perm.iterrows():
     vec_str = row['Vetor']
     vec_lista = eval(vec_str)
     vec_inv = vec_lista[::-1]
     
-    # Acha o ID e NS do inverso
-    # Precisamos encontrar o objeto correspondente ao inverso
     obj_inv = next((item for item in dados_perm if item["Vetor"] == str(vec_inv)), None)
-    
     id_curr = row['ID']
     id_inv = obj_inv['ID']
     
-    # Cria uma chave única para o par (ordem alfabética para evitar duplicatas A-B e B-A)
     ids = sorted([id_curr, id_inv])
     chave_par = f"{ids[0]}-{ids[1]}"
     
     if chave_par not in ids_processados:
         ids_processados.add(chave_par)
         
-        # Identificação da Info (Prioriza Rotações)
         info_par = "-"
         if vec_lista in rotacoes:
             info_par = f"Rotação {rotacoes.index(vec_lista)}"
