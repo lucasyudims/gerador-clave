@@ -64,13 +64,13 @@ def gerar_permutacoes_unicas(vetor):
     unicas.sort()
     return unicas
 
-# --- GERADOR DE HTML (ESTILO COMPACTO COM LINHAS VERTICAIS) ---
+# --- GERADOR DE HTML (COM ESTILO PARA INVERSÃO) ---
 
 def gerar_html_tabela(df, divisor_visual):
-    # 1. Tabela: width: auto (para não esticar), margin: auto (para centralizar na tela)
+    # 1. Tabela: width: auto, margin: auto
     style_table = "width: auto; margin: 0 auto; border-collapse: collapse; font-family: sans-serif; font-size: 14px; color: black; border: 1px solid #ccc;"
     
-    # 2. Cabeçalho: Com borda vertical (border-right)
+    # 2. Cabeçalho
     style_th = "background-color: #f0f2f6; color: black; border-bottom: 2px solid #333; border-right: 1px solid #ccc; padding: 10px 15px; text-align: center;"
     
     html = f'<div style="width:100%; display:flex; justify-content:center;"><table style="{style_table}">'
@@ -82,20 +82,26 @@ def gerar_html_tabela(df, divisor_visual):
             <th style="{style_th}">Grid Visual</th>
             <th style="{style_th}">Vetor</th>
             <th style="{style_th}">NS</th>
-            <th style="{style_th} border-right: none;">Info</th> </tr>
+            <th style="{style_th} border-right: none;">Info</th>
+        </tr>
     </thead>
     <tbody>
     '''
     
     for index, row in df.iterrows():
         bg_color = "white"
-        if "ORIGINAL" in str(row['Info']): bg_color = "#e6f3ff" 
-        elif "Rotação" in str(row['Info']): bg_color = "#f0fff4" 
+        info_str = str(row['Info'])
         
-        # Estilo Base da Célula: Com borda vertical e alinhamento central
+        # --- LÓGICA DE CORES DA LINHA ---
+        if "ORIGINAL" in info_str: 
+            bg_color = "#e6f3ff" # Azul Claro
+        elif "Rotação" in info_str: 
+            bg_color = "#f0fff4" # Verde Claro
+        elif "Inversão" in info_str: 
+            bg_color = "#fff8e1" # Amarelo/Âmbar Claro
+        
+        # Estilos das Células
         style_td_base = "border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 8px 15px; vertical-align: middle; text-align: center;"
-        
-        # Última coluna não precisa de borda direita
         style_td_last = "border-bottom: 1px solid #ddd; padding: 8px 15px; vertical-align: middle; text-align: center;"
         
         html += f'<tr style="background-color: {bg_color};">'
@@ -111,7 +117,6 @@ def gerar_html_tabela(df, divisor_visual):
         
         for i, val in enumerate(vetor_loc):
             cor_fundo = "#FF5252" if val == 1 else "white" 
-            
             dot_html = ""
             if val == 1:
                 dot_html = '<div style="width: 4px; height: 4px; background-color: black; border-radius: 50%;"></div>'
@@ -138,7 +143,6 @@ def gerar_html_tabela(df, divisor_visual):
 
         grid_html += '</div>'
         
-        # Grid usa o estilo base (com linha vertical separando da próxima coluna)
         html += f'<td style="{style_td_base}">{grid_html}</td>'
         
         # 3. Vetor
@@ -147,14 +151,20 @@ def gerar_html_tabela(df, divisor_visual):
         # 4. NS
         html += f'<td style="{style_td_base} color: #666;">{row["NS"]}</td>'
         
-        # 5. Info (Última coluna)
-        cor_info = "green" if row['Info'] != "-" else "#ccc"
-        weight_info = "bold" if row['Info'] != "-" else "normal"
+        # 5. Info (Com cores específicas para texto)
+        cor_info = "#ccc" # Padrão
+        if "ORIGINAL" in info_str or "Rotação" in info_str:
+            cor_info = "green"
+        elif "Inversão" in info_str:
+            cor_info = "#d35400" # Laranja Escuro / Ferrugem
+            
+        weight_info = "bold" if info_str != "-" else "normal"
+        
         html += f'<td style="{style_td_last} color: {cor_info}; font-weight: {weight_info}; font-size: 12px; white-space: nowrap;">{row["Info"]}</td>'
         
         html += '</tr>'
         
-    html += '</tbody></table></div>' # Fecha a div centralizadora
+    html += '</tbody></table></div>'
     
     return html.replace('\n', '')
 
@@ -186,7 +196,14 @@ with st.sidebar:
 
 # --- PROCESSAMENTO ---
 
+# 1. Gera Rotações
 rotacoes = gerar_rotacoes(vetor_original)
+
+# 2. Gera Inversões (Novidade!)
+# Cria uma lista de inversões correspondentes a cada rotação
+# [::-1] é a sintaxe do Python para inverter a lista
+inversoes = [rot[::-1] for rot in rotacoes]
+
 dados_rot = []
 for i, rot in enumerate(rotacoes):
     ns = calcular_ns(vetor_original, rot)
@@ -195,21 +212,43 @@ df_rot = pd.DataFrame(dados_rot).sort_values("NS")
 
 perms = gerar_permutacoes_unicas(vetor_original)
 dados_perm = []
+
 for i, perm in enumerate(perms):
     l_perm = list(perm)
     ns = calcular_ns(vetor_original, l_perm)
+    
     match = "-"
     eh_orig = False
+    
+    # Hierarquia de Identificação:
+    # 1. É o Original?
     if l_perm == vetor_original:
         match = ">>> VETOR ORIGINAL <<<"
         eh_orig = True
+    
+    # 2. É uma Rotação?
+    elif l_perm in rotacoes:
+        # Descobre qual o índice da rotação
+        idx = rotacoes.index(l_perm)
+        match = f"Rotação {idx}"
+        
+    # 3. É uma Inversão? (Nova Lógica)
     else:
-        for idx_rot, rot_existente in enumerate(rotacoes):
-            if l_perm == rot_existente:
-                match = f"Rotação {idx_rot}"
-                break
-                
-    dados_perm.append({"ID": f"#{i+1:02d}", "Vetor": str(l_perm), "NS": ns, "Info": match, "ordem": 0 if eh_orig else 1})
+        # Verifica se bate com alguma das inversões calculadas
+        if l_perm in inversoes:
+            idx_inv = inversoes.index(l_perm)
+            if idx_inv == 0:
+                match = "Inversão (Retro)" # Inversão do Original
+            else:
+                match = f"Inversão Rot {idx_inv}" # Inversão de uma rotação específica
+
+    dados_perm.append({
+        "ID": f"#{i+1:02d}", 
+        "Vetor": str(l_perm), 
+        "NS": ns, 
+        "Info": match, 
+        "ordem": 0 if eh_orig else 1
+    })
 
 df_perm = pd.DataFrame(dados_perm).sort_values(["ordem", "NS"])
 df_perm.loc[df_perm['Info'] == ">>> VETOR ORIGINAL <<<", 'ID'] = "ORIG"
